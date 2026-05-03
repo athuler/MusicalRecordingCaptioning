@@ -7,7 +7,7 @@ def _download_default_model():
     try:
         from faster_whisper import WhisperModel
         print("Downloading default Whisper model (small)...")
-        WhisperModel("small", device="cpu", compute_type="int8")
+        WhisperModel("small", device="auto", compute_type="auto")
         print("Default model ready.")
     except Exception as e:
         print(f"Warning: could not pre-download Whisper model: {e}")

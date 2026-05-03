@@ -31,7 +31,7 @@ def extract_audio(media_path: Path) -> Path:
 
 def _load_model(model_name: str) -> WhisperModel:
     try:
-        return WhisperModel(model_name, device="auto", compute_type="int8", local_files_only=True)
+        return WhisperModel(model_name, device="auto", compute_type="auto", local_files_only=True)
     except (LocalEntryNotFoundError, Exception) as e:
         if "local_files_only" in str(e) or "not found" in str(e).lower() or "Entry Not Found" in str(e):
             raise RuntimeError(
