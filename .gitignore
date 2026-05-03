@@ -1,0 +1,4 @@
+.env
+*.webm
+*.mp4
+*__pycache__*

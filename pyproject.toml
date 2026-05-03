@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "musicalrecordingcaptioning"
+version = "0.1.0"
+description = "Caption musical theater, concerts, or any recording using Genius lyrics and Whisper"
+requires-python = ">=3.10"
+dynamic = ["dependencies"]
+
+[project.scripts]
+mrc = "musicalrecordingcaptioning.cli:app"
+
+[tool.setuptools.dynamic]
+dependencies = {file = ["requirements.txt"]}
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["musicalrecordingcaptioning*"]
