@@ -3,6 +3,7 @@ from pathlib import Path
 import ffmpeg
 import tempfile
 from faster_whisper import WhisperModel
+from rich.progress import Progress, BarColumn, TimeRemainingColumn, TaskProgressColumn
 
 
 @dataclass
@@ -30,12 +31,22 @@ def extract_audio(media_path: Path) -> Path:
 def transcribe(media_path: Path, model_name: str = "base") -> list[Word]:
     audio_path = extract_audio(media_path)
     model = WhisperModel(model_name, device="auto", compute_type="int8")
-    segments, _ = model.transcribe(str(audio_path), word_timestamps=True)
+    segments, info = model.transcribe(str(audio_path), word_timestamps=True)
+    duration = info.duration
 
     words: list[Word] = []
-    for segment in segments:
-        for w in segment.words:
-            text = w.word.strip()
-            if text:
-                words.append(Word(text=text, start=w.start, end=w.end))
+    with Progress(
+        "[progress.description]{task.description}",
+        BarColumn(),
+        TaskProgressColumn(),
+        TimeRemainingColumn(),
+    ) as progress:
+        task = progress.add_task("Transcribing...", total=duration)
+        for segment in segments:
+            for w in segment.words:
+                text = w.word.strip()
+                if text:
+                    words.append(Word(text=text, start=w.start, end=w.end))
+            progress.update(task, completed=segment.end)
+
     return words
