@@ -42,10 +42,10 @@ def _load_model(model_name: str) -> WhisperModel:
         raise
 
 
-def transcribe(media_path: Path, model_name: str = "base") -> list[Word]:
+def transcribe(media_path: Path, model_name: str = "small", language: str | None = None) -> list[Word]:
     audio_path = extract_audio(media_path)
     model = _load_model(model_name)
-    segments, info = model.transcribe(str(audio_path), word_timestamps=True)
+    segments, info = model.transcribe(str(audio_path), word_timestamps=True, language=language)
     duration = info.duration
 
     words: list[Word] = []

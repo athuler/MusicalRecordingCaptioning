@@ -22,7 +22,10 @@ def main(
     ] = None,
     model: Annotated[
         str, typer.Option(help="Whisper model size: tiny, base, small, medium, large")
-    ] = "base",
+    ] = "small",
+    language: Annotated[
+        str | None, typer.Option(help="Audio language as ISO 639-1 code (e.g. en, fr). Auto-detected if omitted.")
+    ] = None,
 ) -> None:
     if not file.exists():
         typer.echo(f"Error: file not found: {file}", err=True)
@@ -46,8 +49,9 @@ def main(
     songs = fetch_album_lyrics(url, token)
     typer.echo(f"  Found {len(songs)} tracks.")
 
-    typer.echo(f"Transcribing '{file}' with Whisper model '{model}'...")
-    words = transcribe(file, model)
+    lang_note = f", language={language}" if language else " (auto-detect language)"
+    typer.echo(f"Transcribing '{file}' with Whisper model '{model}'{lang_note}...")
+    words = transcribe(file, model, language)
     typer.echo(f"  Transcribed {len(words)} words.")
 
     typer.echo("Aligning lyrics to transcript...")

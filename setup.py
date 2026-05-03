@@ -6,8 +6,8 @@ from setuptools.command.develop import develop
 def _download_default_model():
     try:
         from faster_whisper import WhisperModel
-        print("Downloading default Whisper model (base)...")
-        WhisperModel("base", device="cpu", compute_type="int8")
+        print("Downloading default Whisper model (small)...")
+        WhisperModel("small", device="cpu", compute_type="int8")
         print("Default model ready.")
     except Exception as e:
         print(f"Warning: could not pre-download Whisper model: {e}")
