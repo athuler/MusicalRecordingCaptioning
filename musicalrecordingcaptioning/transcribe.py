@@ -3,6 +3,7 @@ from pathlib import Path
 import ffmpeg
 import tempfile
 from faster_whisper import WhisperModel
+from huggingface_hub.utils import LocalEntryNotFoundError
 from rich.progress import Progress, BarColumn, TimeRemainingColumn, TaskProgressColumn
 
 
@@ -28,9 +29,22 @@ def extract_audio(media_path: Path) -> Path:
     return out_path
 
 
+def _load_model(model_name: str) -> WhisperModel:
+    try:
+        return WhisperModel(model_name, device="auto", compute_type="int8", local_files_only=True)
+    except (LocalEntryNotFoundError, Exception) as e:
+        if "local_files_only" in str(e) or "not found" in str(e).lower() or "Entry Not Found" in str(e):
+            raise RuntimeError(
+                f"Whisper model '{model_name}' is not available locally.\n"
+                f"Download it by running:  pip install -e . --force-reinstall\n"
+                f"(or re-run setup to fetch the model)"
+            ) from None
+        raise
+
+
 def transcribe(media_path: Path, model_name: str = "base") -> list[Word]:
     audio_path = extract_audio(media_path)
-    model = WhisperModel(model_name, device="auto", compute_type="int8")
+    model = _load_model(model_name)
     segments, info = model.transcribe(str(audio_path), word_timestamps=True)
     duration = info.duration
 
