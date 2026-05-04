@@ -58,9 +58,9 @@ def main(
     typer.echo(f"  Transcribed {len(words)} words.")
 
     typer.echo("Aligning lyrics to transcript...")
-    captions = align(songs, words)
+    captions, song_spans = align(songs, words)
     if keep_transcription:
-        captions = fill_gaps(captions, words)
+        captions = fill_gaps(captions, words, song_spans)
     typer.echo(f"  Generated {len(captions)} caption lines.")
 
     write_srt(captions, out_path)

@@ -73,8 +73,9 @@ def _match_line_to_words(
     return best_start, best_end
 
 
-def align(songs: list[Song], words: list[Word]) -> list[CaptionLine]:
+def align(songs: list[Song], words: list[Word]) -> tuple[list[CaptionLine], list[tuple[float, float]]]:
     captions: list[CaptionLine] = []
+    song_spans: list[tuple[float, float]] = []
     word_cursor = 0
 
     for song in songs:
@@ -85,6 +86,7 @@ def align(songs: list[Song], words: list[Word]) -> list[CaptionLine]:
         song_start_idx = _find_song_start(words, lines, word_cursor)
 
         line_cursor = song_start_idx
+        song_caption_start = len(captions)
         for i, lyric_line in enumerate(lines):
             if line_cursor >= len(words):
                 break
@@ -96,9 +98,11 @@ def align(songs: list[Song], words: list[Word]) -> list[CaptionLine]:
             start_time = words[start_idx].start
             end_time = words[min(end_idx, len(words) - 1)].end
 
-            # end time = start of next line if available, otherwise word end
             captions.append(CaptionLine(text=f"♪ {lyric_line} ♪", start=start_time, end=end_time))
             line_cursor = max(line_cursor + 1, end_idx)
+
+        if len(captions) > song_caption_start:
+            song_spans.append((captions[song_caption_start].start, captions[-1].end))
 
         word_cursor = line_cursor
 
@@ -107,7 +111,7 @@ def align(songs: list[Song], words: list[Word]) -> list[CaptionLine]:
         if captions[i].end > captions[i + 1].start:
             captions[i].end = captions[i + 1].start
 
-    return captions
+    return captions, song_spans
 
 
 def _words_to_transcript_lines(
@@ -139,9 +143,15 @@ def _words_to_transcript_lines(
 
 
 def fill_gaps(
-    captions: list[CaptionLine], words: list[Word], min_gap: float = 1.0
+    captions: list[CaptionLine],
+    words: list[Word],
+    song_spans: list[tuple[float, float]],
+    min_gap: float = 1.0,
 ) -> list[CaptionLine]:
-    """Insert transcript-based captions into time ranges not covered by lyric captions."""
+    """Insert transcript-based captions into time ranges not covered by lyric captions.
+
+    Gaps that fall within a song's time span are skipped — only inter-song silence is filled.
+    """
     if not captions:
         return _words_to_transcript_lines(words)
 
@@ -149,9 +159,17 @@ def fill_gaps(
     word_idx = 0
     gap_captions: list[CaptionLine] = []
 
+    def _inside_song(gap_start: float, gap_end: float) -> bool:
+        for span_start, span_end in song_spans:
+            if gap_start >= span_start and gap_end <= span_end:
+                return True
+        return False
+
     def _collect_gap(gap_start: float, gap_end: float) -> None:
         nonlocal word_idx
         if gap_end - gap_start < min_gap:
+            return
+        if _inside_song(gap_start, gap_end):
             return
         gap_words: list[Word] = []
         while word_idx < len(words) and words[word_idx].start < gap_start:
