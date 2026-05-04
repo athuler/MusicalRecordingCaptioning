@@ -97,7 +97,7 @@ def align(songs: list[Song], words: list[Word]) -> list[CaptionLine]:
             end_time = words[min(end_idx, len(words) - 1)].end
 
             # end time = start of next line if available, otherwise word end
-            captions.append(CaptionLine(text=lyric_line, start=start_time, end=end_time))
+            captions.append(CaptionLine(text=f"♪ {lyric_line} ♪", start=start_time, end=end_time))
             line_cursor = max(line_cursor + 1, end_idx)
 
         word_cursor = line_cursor
@@ -108,3 +108,69 @@ def align(songs: list[Song], words: list[Word]) -> list[CaptionLine]:
             captions[i].end = captions[i + 1].start
 
     return captions
+
+
+def _words_to_transcript_lines(
+    words: list[Word], max_words: int = 8, pause_threshold: float = 0.6
+) -> list[CaptionLine]:
+    """Group a flat word list into caption lines, splitting on pauses or word count."""
+    lines: list[CaptionLine] = []
+    group: list[Word] = []
+
+    for i, word in enumerate(words):
+        group.append(word)
+        gap_after = (words[i + 1].start - word.end) if i + 1 < len(words) else pause_threshold + 1
+        if len(group) >= max_words or gap_after >= pause_threshold:
+            lines.append(CaptionLine(
+                text=" ".join(w.text for w in group),
+                start=group[0].start,
+                end=group[-1].end,
+            ))
+            group = []
+
+    if group:
+        lines.append(CaptionLine(
+            text=" ".join(w.text for w in group),
+            start=group[0].start,
+            end=group[-1].end,
+        ))
+
+    return lines
+
+
+def fill_gaps(
+    captions: list[CaptionLine], words: list[Word], min_gap: float = 1.0
+) -> list[CaptionLine]:
+    """Insert transcript-based captions into time ranges not covered by lyric captions."""
+    if not captions:
+        return _words_to_transcript_lines(words)
+
+    covered: list[tuple[float, float]] = [(c.start, c.end) for c in captions]
+    word_idx = 0
+    gap_captions: list[CaptionLine] = []
+
+    def _collect_gap(gap_start: float, gap_end: float) -> None:
+        nonlocal word_idx
+        if gap_end - gap_start < min_gap:
+            return
+        gap_words: list[Word] = []
+        while word_idx < len(words) and words[word_idx].start < gap_start:
+            word_idx += 1
+        while word_idx < len(words) and words[word_idx].end <= gap_end:
+            gap_words.append(words[word_idx])
+            word_idx += 1
+        gap_captions.extend(_words_to_transcript_lines(gap_words))
+
+    # gap before first caption
+    _collect_gap(0.0, covered[0][0])
+
+    # gaps between captions
+    for i in range(len(covered) - 1):
+        _collect_gap(covered[i][1], covered[i + 1][0])
+
+    # gap after last caption
+    if words:
+        _collect_gap(covered[-1][1], words[-1].end)
+
+    merged = sorted(captions + gap_captions, key=lambda c: c.start)
+    return merged

@@ -60,6 +60,9 @@ mrc spectacle.mp4 --url https://genius.com/albums/... --language fr
 mrc show.mp4 --url https://genius.com/albums/Claude-michel-schonberg/Les-miserables-original-broadway-cast-recording \
     --output les-mis.srt --model medium --language fr
 
+# Also caption dialogue and non-song audio with the raw Whisper transcript
+mrc recording.mp4 --url https://genius.com/albums/Lin-manuel-miranda/Hamilton --keep-transcription
+
 # Pass token explicitly
 mrc concert.mp3 --url https://genius.com/albums/Anais-mitchell/Hadestown \
     --genius-token abc123
@@ -74,6 +77,11 @@ mrc concert.mp3 --url https://genius.com/albums/Anais-mitchell/Hadestown \
 | `--output` | `<input>.srt` | Output SRT file path |
 | `--model` | `small` | Whisper model: `tiny`, `base`, `small`, `medium`, `large` |
 | `--language` | auto-detect | Audio language as ISO 639-1 code (e.g. `en`, `fr`, `de`) |
+| `--keep-transcription` | off | Fill gaps between songs with raw Whisper transcript captions |
+
+### Caption format
+
+Lyric lines are wrapped with ♪ symbols (`♪ lyrics here ♪`), matching standard subtitle convention for sung content. When `--keep-transcription` is enabled, dialogue and non-song audio appear as plain text captions.
 
 ### Whisper models
 

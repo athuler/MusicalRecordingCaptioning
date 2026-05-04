@@ -4,7 +4,7 @@ import typer
 from .config import resolve_genius_token
 from .genius import fetch_album_lyrics, _parse_genius_album_url
 from .transcribe import transcribe
-from .align import align
+from .align import align, fill_gaps
 from .srt_writer import write_srt
 
 app = typer.Typer(add_completion=False)
@@ -26,6 +26,9 @@ def main(
     language: Annotated[
         str | None, typer.Option(help="Audio language as ISO 639-1 code (e.g. en, fr). Auto-detected if omitted.")
     ] = None,
+    keep_transcription: Annotated[
+        bool, typer.Option("--keep-transcription", help="Fill gaps between songs with raw Whisper transcript captions.")
+    ] = False,
 ) -> None:
     if not file.exists():
         typer.echo(f"Error: file not found: {file}", err=True)
@@ -56,6 +59,8 @@ def main(
 
     typer.echo("Aligning lyrics to transcript...")
     captions = align(songs, words)
+    if keep_transcription:
+        captions = fill_gaps(captions, words)
     typer.echo(f"  Generated {len(captions)} caption lines.")
 
     write_srt(captions, out_path)
